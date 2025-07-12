@@ -48,19 +48,45 @@ const App = () => {
     }
   }, []);
 
-  const fetchData = async (city) => {
-    setLoading(true);
-    setError(null);
+  const queueRequest = async (city) => {
+  const current = JSON.parse(localStorage.getItem("queuedCities") || "[]");
+
+  if (!current.includes(city)) {
+    localStorage.setItem("queuedCities", JSON.stringify([...current, city]));
+  }
+
+  if ("serviceWorker" in navigator && "SyncManager" in window) {
     try {
-      const data = await fetchWeather(city);
-      setWeatherData(data);
-      setCityName("");
-      updateRecentSearches(data.location.name);
-    } catch (error) {
-      setError("City not found");
-      setWeatherData(null);
-    } finally {
-      setLoading(false);
+      const reg = await navigator.serviceWorker.ready;
+      await reg.sync.register("sync-weather");
+      console.log("Queued for background sync:", city);
+    } catch (err) {
+      console.error("Failed to register sync:", err);
+    }
+  } else {
+    console.warn("Background sync not supported");
+  }
+};
+
+const fetchData = async (city) => {
+  if (!navigator.onLine) {
+    await queueRequest(city);
+    setError("You're offline. Request queued!");
+    return;
+  }
+
+  setLoading(true);
+  setError(null);
+  try {
+    const data = await fetchWeather(city);
+    setWeatherData(data);
+    setCityName("");
+    updateRecentSearches(data.location.name);
+  } catch (error) {
+    setError("City not found");
+    setWeatherData(null);
+  } finally {
+    setLoading(false);
     }
   };
 
@@ -122,6 +148,7 @@ const App = () => {
       });
     }
   };
+
 
   return (
     <div>
