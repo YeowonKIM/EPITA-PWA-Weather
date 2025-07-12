@@ -26,6 +26,26 @@ const App = () => {
             }
           );
         }
+    // Request ush Notification permission 
+    if ("Notification" in window && "serviceWorker" in navigator) {
+      Notification.requestPermission().then((permission) => {
+        if (permission === "granted") {
+          console.log("Notification permission granted");
+        }
+      });
+    }
+
+    // Service Worker 
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker
+      .register("/pwa/serviceWorker.js")
+      .then((registration) => {
+        console.log("Service Worker registered:", registration);
+      })
+      .catch((error) => {
+        console.error("Service Worker registration failed:", error);
+      });
+    }
   }, []);
 
   const fetchData = async (city) => {
@@ -89,6 +109,18 @@ const App = () => {
     return isCelsius
       ? `${weatherData.current.temp_c} °C`
       : `${weatherData.current.temp_f} °F`;
+  };
+
+  // Push notification test
+  const sendTestNotification = () => {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.ready.then((registration) => {
+        registration.showNotification("Today's weather", {
+          body: "☀️ Warn and sunny day!",
+          icon: "/icon-192x192.png",
+        });
+      });
+    }
   };
 
   return (
