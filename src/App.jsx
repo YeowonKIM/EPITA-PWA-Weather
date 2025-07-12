@@ -5,7 +5,7 @@ const App = () => {
   const [weatherData, setWeatherData] = useState(null);
   const [cityName, setCityName] = useState("");
   const [error, setError] = useState(null);
-  const [isCelsius, setIsCelsius] = useState(null);
+  const [isCelsius, setIsCelsius] = useState(true);;
   const [loading, setLoading] = useState(false);
   const [recentSearches, setRecentSearches] = useState([]);
 
@@ -13,6 +13,19 @@ const App = () => {
     const savedSearches =
       JSON.parse(localStorage.getItem("recentSearches")) || [];
     setRecentSearches(savedSearches);
+
+    // Weather load automatically based on location
+    if ("geolocation" in navigator) {
+          navigator.geolocation.getCurrentPosition(
+            (position) => {
+              const { latitude, longitude } = position.coords;
+              fetchWeatherByCoords(latitude, longitude); 
+            },
+            (err) => {
+              console.warn("Location not found", err);
+            }
+          );
+        }
   }, []);
 
   const fetchData = async (city) => {
@@ -24,7 +37,23 @@ const App = () => {
       setCityName("");
       updateRecentSearches(data.location.name);
     } catch (error) {
-      setError("City not found. Please try again.");
+      setError("City not found");
+      setWeatherData(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // wheather based on lat, lon
+  const fetchWeatherByCoords = async (lat, lon) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await fetchWeather({ lat, lon }); 
+      setWeatherData(data);
+      updateRecentSearches(data.location.name);
+    } catch (err) {
+      setError("Failed to fetch weather for the current location");
       setWeatherData(null);
     } finally {
       setLoading(false);
@@ -121,6 +150,6 @@ const App = () => {
       </div>
     </div>
   );
-};
+}
 
 export default App;
